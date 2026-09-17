@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "../../(auth)/actions";
+import { InstallPwaButton } from "@/components/install-pwa-button";
 
 export default async function MoiPage() {
   const supabase = await createClient();
@@ -27,6 +28,8 @@ export default async function MoiPage() {
           {profile?.display_name || user.email}
         </p>
       </div>
+
+      <InstallPwaButton />
 
       <form action={logout}>
         <button

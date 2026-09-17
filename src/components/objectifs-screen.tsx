@@ -1,6 +1,7 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createGoal } from "@/app/actions/goals";
 import {
   GOAL_CADENCE_LABELS,
@@ -13,6 +14,7 @@ import { formatFrenchDate, formatXof } from "@/lib/format";
 import { GoalForm } from "@/components/goal-form";
 import { Modal } from "@/components/modal";
 import { DeclareContributionModal } from "@/components/declare-contribution-modal";
+import { PushSubscribeBanner } from "@/components/push-subscribe-banner";
 
 type GoalWithProgress = Goal & { progress: GoalProgress; streak: number };
 
@@ -52,8 +54,24 @@ export function ObjectifsScreen({
   );
   const [, startTransition] = useTransition();
   const [creating, setCreating] = useState(false);
-  const [declaringGoalId, setDeclaringGoalId] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  // Lu une seule fois, à l'état initial : un lien de notification
+  // (?declare=<id>&stage=amount|skip) ouvre directement la bonne modale.
+  const [declaringGoalId, setDeclaringGoalId] = useState<string | null>(() =>
+    searchParams.get("declare"),
+  );
+  const [declareStage] = useState<"choice" | "amount" | "skip">(() => {
+    const stage = searchParams.get("stage");
+    return stage === "amount" || stage === "skip" ? stage : "choice";
+  });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("declare")) router.replace("/objectifs");
+    // Nettoyage d'URL ponctuel : ne doit pas se relancer à chaque changement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const canCreate = goals.length < MAX_ACTIVE_GOALS;
   const declaringGoal = goals.find((g) => g.id === declaringGoalId) ?? null;
@@ -72,6 +90,8 @@ export function ObjectifsScreen({
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-8">
       <h1 className="text-2xl font-semibold text-foreground">Objectifs</h1>
+
+      {goals.length > 0 ? <PushSubscribeBanner /> : null}
 
       {error ? (
         <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
@@ -184,6 +204,7 @@ export function ObjectifsScreen({
         <DeclareContributionModal
           goalId={declaringGoal.id}
           theoreticalAmountXof={declaringGoal.progress.theoreticalAmountXof}
+          initialStage={declareStage}
           onClose={() => setDeclaringGoalId(null)}
         />
       ) : null}

@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   "/auth/callback",
   "/confidentialite",
   "/api/cron",
+  "/api/push",
 ];
 
 export async function updateSession(request: NextRequest) {

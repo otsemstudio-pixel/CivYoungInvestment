@@ -131,3 +131,12 @@ export interface Contribution {
   skip_reason: SkipReason | null;
   declared_at: string;
 }
+
+export interface PushSubscriptionRecord {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: string;
+}

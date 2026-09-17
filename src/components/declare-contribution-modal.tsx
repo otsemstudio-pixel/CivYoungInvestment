@@ -18,14 +18,16 @@ interface Confirmation {
 export function DeclareContributionModal({
   goalId,
   theoreticalAmountXof,
+  initialStage = "choice",
   onClose,
 }: {
   goalId: string;
   theoreticalAmountXof: number;
+  initialStage?: "choice" | "amount" | "skip";
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [stage, setStage] = useState<Stage>("choice");
+  const [stage, setStage] = useState<Stage>(initialStage);
   const [amount, setAmount] = useState(String(theoreticalAmountXof));
   const [skipReason, setSkipReason] = useState<SkipReason>("imprevu");
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
