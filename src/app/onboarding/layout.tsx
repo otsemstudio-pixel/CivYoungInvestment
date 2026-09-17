@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { TabBar } from "@/components/tab-bar";
 
-export default async function AppLayout({
+export default async function OnboardingLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -22,14 +21,13 @@ export default async function AppLayout({
     .eq("id", user.id)
     .single();
 
-  if (!profile?.onboarding_done) {
-    redirect("/onboarding");
+  if (profile?.onboarding_done) {
+    redirect("/patrimoine");
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex-1 pb-20">{children}</div>
-      <TabBar />
+    <div className="flex min-h-screen flex-col justify-center px-6 py-12">
+      <div className="mx-auto w-full max-w-sm">{children}</div>
     </div>
   );
 }
