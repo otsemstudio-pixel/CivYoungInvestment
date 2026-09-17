@@ -7,6 +7,8 @@ const PUBLIC_PATHS = [
   "/reset-password",
   "/update-password",
   "/auth/callback",
+  "/confidentialite",
+  "/api/cron",
 ];
 
 export async function updateSession(request: NextRequest) {

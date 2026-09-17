@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "../../(auth)/actions";
@@ -35,6 +36,10 @@ export default async function MoiPage() {
           Se déconnecter
         </button>
       </form>
+
+      <Link href="/confidentialite" className="text-sm text-accent underline-offset-2 hover:underline">
+        Politique de confidentialité
+      </Link>
     </div>
   );
 }
