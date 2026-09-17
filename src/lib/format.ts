@@ -8,3 +8,12 @@ export function formatXof(amount: number): string {
 }
 
 export const MASKED_AMOUNT = "•••••";
+
+export function formatFrenchDate(isoDate: string): string {
+  return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}

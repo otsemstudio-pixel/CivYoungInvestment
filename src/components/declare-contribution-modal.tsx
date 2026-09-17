@@ -4,10 +4,16 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { declareContribution } from "@/app/actions/contributions";
 import { SKIP_REASONS, SKIP_REASON_LABELS, type SkipReason } from "@/lib/types";
-import { formatXof } from "@/lib/format";
+import { formatFrenchDate, formatXof } from "@/lib/format";
 import { Modal } from "@/components/modal";
 
-type Stage = "choice" | "amount" | "skip";
+type Stage = "choice" | "amount" | "skip" | "confirmation";
+
+interface Confirmation {
+  streak: number;
+  jokerUsedThisPeriod: boolean;
+  nextPeriodStartIso: string | null;
+}
 
 export function DeclareContributionModal({
   goalId,
@@ -22,6 +28,7 @@ export function DeclareContributionModal({
   const [stage, setStage] = useState<Stage>("choice");
   const [amount, setAmount] = useState(String(theoreticalAmountXof));
   const [skipReason, setSkipReason] = useState<SkipReason>("imprevu");
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -32,12 +39,13 @@ export function DeclareContributionModal({
     formData.set("amount_xof", String(amount_xof));
     startTransition(async () => {
       const result = await declareContribution(goalId, formData);
-      if (result.error) {
-        setError(result.error);
+      if (!result.data) {
+        setError(result.error ?? "Erreur inconnue.");
         return;
       }
       router.refresh();
-      onClose();
+      setConfirmation(result.data);
+      setStage("confirmation");
     });
   }
 
@@ -48,12 +56,13 @@ export function DeclareContributionModal({
     formData.set("skip_reason", skipReason);
     startTransition(async () => {
       const result = await declareContribution(goalId, formData);
-      if (result.error) {
-        setError(result.error);
+      if (!result.data) {
+        setError(result.error ?? "Erreur inconnue.");
         return;
       }
       router.refresh();
-      onClose();
+      setConfirmation(result.data);
+      setStage("confirmation");
     });
   }
 
@@ -170,6 +179,36 @@ export function DeclareContributionModal({
               Confirmer
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {stage === "confirmation" && confirmation ? (
+        <div className="flex flex-col gap-3 text-center">
+          <p className="text-sm text-foreground/70">Série</p>
+          <p
+            className={`tabular-nums text-4xl font-semibold ${
+              confirmation.streak >= 4 ? "text-reward" : "text-foreground"
+            }`}
+          >
+            {confirmation.streak}
+          </p>
+          {confirmation.jokerUsedThisPeriod ? (
+            <p className="rounded-lg bg-reward/10 px-3 py-2 text-sm text-reward">
+              Joker utilisé — ta série continue.
+            </p>
+          ) : null}
+          {confirmation.nextPeriodStartIso ? (
+            <p className="text-sm text-foreground/70">
+              Prochain versement le {formatFrenchDate(confirmation.nextPeriodStartIso)}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-2 rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground"
+          >
+            Fermer
+          </button>
         </div>
       ) : null}
     </Modal>

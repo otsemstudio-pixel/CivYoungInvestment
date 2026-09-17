@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ObjectifsScreen } from "@/components/objectifs-screen";
-import { computeGoalProgress } from "@/lib/periods";
+import { computeGoalProgress, computeStreak } from "@/lib/periods";
 import type { Contribution, Goal } from "@/lib/types";
 
 export default async function ObjectifsPage() {
@@ -28,11 +28,10 @@ export default async function ObjectifsPage() {
         .from("contributions")
         .select("*")
         .eq("goal_id", goal.id);
-      const progress = computeGoalProgress(
-        goal,
-        (contributionsData ?? []) as Contribution[],
-      );
-      return { ...goal, progress };
+      const contributions = (contributionsData ?? []) as Contribution[];
+      const progress = computeGoalProgress(goal, contributions);
+      const streak = computeStreak(goal, contributions);
+      return { ...goal, progress, streak: streak.streak };
     }),
   );
 

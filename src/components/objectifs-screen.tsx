@@ -9,20 +9,12 @@ import {
   type GoalCadence,
 } from "@/lib/types";
 import type { GoalProgress } from "@/lib/periods";
-import { formatXof } from "@/lib/format";
+import { formatFrenchDate, formatXof } from "@/lib/format";
 import { GoalForm } from "@/components/goal-form";
 import { Modal } from "@/components/modal";
 import { DeclareContributionModal } from "@/components/declare-contribution-modal";
 
-type GoalWithProgress = Goal & { progress: GoalProgress };
-
-function formatDeadline(deadline: string) {
-  return new Date(`${deadline}T00:00:00`).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+type GoalWithProgress = Goal & { progress: GoalProgress; streak: number };
 
 const EMPTY_PROGRESS: GoalProgress = {
   totalVerseXof: 0,
@@ -45,6 +37,7 @@ function goalFromFormData(formData: FormData, id: string): GoalWithProgress {
     status: "actif",
     created_at: new Date().toISOString(),
     progress: EMPTY_PROGRESS,
+    streak: 0,
   };
 }
 
@@ -99,7 +92,20 @@ export function ObjectifsScreen({
                 key={goal.id}
                 className="rounded-xl border border-border bg-white px-4 py-3"
               >
-                <p className="text-base font-medium text-foreground">{goal.name}</p>
+                <div className="flex items-start justify-between">
+                  <p className="text-base font-medium text-foreground">{goal.name}</p>
+                  {goal.streak > 0 ? (
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium tabular-nums ${
+                        goal.streak >= 4
+                          ? "bg-reward/10 text-reward"
+                          : "bg-accent/10 text-accent"
+                      }`}
+                    >
+                      Série · {goal.streak}
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-1 tabular-nums text-lg font-semibold text-foreground">
                   {formatXof(goal.progress.totalVerseXof)}{" "}
                   <span className="text-sm font-normal text-foreground/60">
@@ -115,7 +121,7 @@ export function ObjectifsScreen({
                 </div>
 
                 <p className="mt-2 text-xs text-foreground/60">
-                  Échéance le {formatDeadline(goal.deadline)} ·{" "}
+                  Échéance le {formatFrenchDate(goal.deadline)} ·{" "}
                   {GOAL_CADENCE_LABELS[goal.cadence]}
                 </p>
                 <p className="text-xs text-foreground/60">

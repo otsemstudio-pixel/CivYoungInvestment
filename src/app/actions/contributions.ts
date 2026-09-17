@@ -2,17 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { currentPeriodStart, toDateOnly, toIsoDate } from "@/lib/periods";
-import { SKIP_REASONS, type Goal, type SkipReason } from "@/lib/types";
+import { computeStreak, currentPeriodStart, toDateOnly, toIsoDate } from "@/lib/periods";
+import { SKIP_REASONS, type Contribution, type Goal, type SkipReason } from "@/lib/types";
 
 type ActionResult<T> =
   | { data: T; error?: undefined }
   | { data?: undefined; error: string };
 
+export interface DeclareContributionResult {
+  period_start: string;
+  streak: number;
+  jokerUsedThisPeriod: boolean;
+  nextPeriodStartIso: string | null;
+}
+
 export async function declareContribution(
   goalId: string,
   formData: FormData,
-): Promise<ActionResult<{ period_start: string }>> {
+): Promise<ActionResult<DeclareContributionResult>> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -77,6 +84,24 @@ export async function declareContribution(
     if (error) return { error: error.message };
   }
 
+  const { data: allContributions } = await supabase
+    .from("contributions")
+    .select("*")
+    .eq("goal_id", goalId);
+
+  const streakInfo = computeStreak(
+    typedGoal,
+    (allContributions ?? []) as Contribution[],
+    today,
+  );
+
   revalidatePath("/objectifs");
-  return { data: { period_start: periodStartIso } };
+  return {
+    data: {
+      period_start: periodStartIso,
+      streak: streakInfo.streak,
+      jokerUsedThisPeriod: streakInfo.jokerUsedAtIso === periodStartIso,
+      nextPeriodStartIso: streakInfo.nextPeriodStartIso,
+    },
+  };
 }

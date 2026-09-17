@@ -37,6 +37,17 @@ export function nextPeriodStart(periodStart: Date, cadence: GoalCadence): Date {
   }
 }
 
+export function previousPeriodStart(periodStart: Date, cadence: GoalCadence): Date {
+  switch (cadence) {
+    case "hebdomadaire":
+      return addDaysUTC(periodStart, -7);
+    case "quinzaine":
+      return addDaysUTC(periodStart, -14);
+    case "mensuelle":
+      return addMonthsUTC(periodStart, -1);
+  }
+}
+
 /** Premier period_start à partir de created_at (§4.1), selon la cadence et l'ancre. */
 export function firstPeriodStart(
   createdAt: Date,
@@ -162,5 +173,81 @@ export function computeGoalProgress(
     currentPeriodStartIso,
     theoreticalAmountXof: theoreticalAmountXof(goal, totalVerseXof, periodStart),
     currentPeriodContribution,
+  };
+}
+
+/** Fenêtre glissante du joker (§4.3) : au plus une rupture absorbée par
+ * tranche de 90 jours. */
+export const JOKER_WINDOW_DAYS = 90;
+
+export interface StreakInfo {
+  streak: number;
+  jokerUsedAtIso: string | null;
+  nextPeriodStartIso: string | null;
+}
+
+/**
+ * Série (§4.2) et joker (§4.3), recalculés à la volée.
+ *
+ * On part de la période en cours et on remonte les périodes closes une à
+ * une. Un `verse` prolonge la série. Une rupture (rien, ou `saute`) est
+ * absorbée par le joker si elle est la première rencontrée dans cette
+ * remontée, ou si plus de 90 jours se sont écoulés depuis la dernière
+ * rupture absorbée (fenêtre glissante) ; sinon la remontée s'arrête là.
+ */
+export function computeStreak(
+  goal: Pick<Goal, "created_at" | "cadence" | "cadence_anchor">,
+  contributions: Contribution[],
+  today: Date = toDateOnly(toIsoDate(new Date())),
+): StreakInfo {
+  const createdAt = toDateOnly(toIsoDate(new Date(goal.created_at)));
+  const current = currentPeriodStart(createdAt, goal.cadence, goal.cadence_anchor, today);
+
+  if (!current) {
+    return { streak: 0, jokerUsedAtIso: null, nextPeriodStartIso: null };
+  }
+
+  const contributionByPeriod = new Map(contributions.map((c) => [c.period_start, c]));
+  const first = firstPeriodStart(createdAt, goal.cadence, goal.cadence_anchor);
+
+  let streak = 0;
+  const currentContribution = contributionByPeriod.get(toIsoDate(current));
+  if (currentContribution?.kind === "verse") streak += 1;
+
+  let jokerUsedAt: Date | null = null;
+  let p = previousPeriodStart(current, goal.cadence);
+  let iterations = 0;
+
+  while (p >= first && iterations < 2000) {
+    iterations++;
+    const contribution = contributionByPeriod.get(toIsoDate(p));
+
+    if (contribution?.kind === "verse") {
+      streak += 1;
+      p = previousPeriodStart(p, goal.cadence);
+      continue;
+    }
+
+    // Rupture : pas de contribution, ou "saute".
+    if (jokerUsedAt === null) {
+      jokerUsedAt = p;
+      p = previousPeriodStart(p, goal.cadence);
+      continue;
+    }
+
+    const daysSinceJoker = Math.round((jokerUsedAt.getTime() - p.getTime()) / DAY_MS);
+    if (daysSinceJoker > JOKER_WINDOW_DAYS) {
+      jokerUsedAt = p;
+      p = previousPeriodStart(p, goal.cadence);
+      continue;
+    }
+
+    break;
+  }
+
+  return {
+    streak,
+    jokerUsedAtIso: jokerUsedAt ? toIsoDate(jokerUsedAt) : null,
+    nextPeriodStartIso: toIsoDate(nextPeriodStart(current, goal.cadence)),
   };
 }
