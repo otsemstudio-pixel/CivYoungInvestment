@@ -6,3 +6,5 @@ export function formatXof(amount: number): string {
     .replace(/\B(?=(\d{3})+(?!\d))/g, NARROW_NO_BREAK_SPACE);
   return amount < 0 ? `-${grouped}` : grouped;
 }
+
+export const MASKED_AMOUNT = "•••••";
