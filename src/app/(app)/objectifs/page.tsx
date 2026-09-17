@@ -1,12 +1,23 @@
-export default function ObjectifsPage() {
-  return (
-    <div className="mx-auto flex max-w-md flex-col items-center justify-center gap-2 px-4 py-16 text-center">
-      <p className="text-base font-medium text-foreground">
-        Tes objectifs arrivent bientôt
-      </p>
-      <p className="text-sm text-foreground/60">
-        Cet onglet sera construit dans les prochains jours.
-      </p>
-    </div>
-  );
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { ObjectifsScreen } from "@/components/objectifs-screen";
+import type { Goal } from "@/lib/types";
+
+export default async function ObjectifsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: goals } = await supabase
+    .from("goals")
+    .select("*")
+    .eq("status", "actif")
+    .order("created_at", { ascending: false });
+
+  return <ObjectifsScreen initialGoals={(goals ?? []) as Goal[]} />;
 }
