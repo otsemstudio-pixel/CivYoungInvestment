@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ObjectifsScreen } from "@/components/objectifs-screen";
-import type { Goal } from "@/lib/types";
+import { computeGoalProgress } from "@/lib/periods";
+import type { Contribution, Goal } from "@/lib/types";
 
 export default async function ObjectifsPage() {
   const supabase = await createClient();
@@ -13,11 +14,27 @@ export default async function ObjectifsPage() {
     redirect("/login");
   }
 
-  const { data: goals } = await supabase
+  const { data: goalsData } = await supabase
     .from("goals")
     .select("*")
     .eq("status", "actif")
     .order("created_at", { ascending: false });
 
-  return <ObjectifsScreen initialGoals={(goals ?? []) as Goal[]} />;
+  const goals = (goalsData ?? []) as Goal[];
+
+  const goalsWithProgress = await Promise.all(
+    goals.map(async (goal) => {
+      const { data: contributionsData } = await supabase
+        .from("contributions")
+        .select("*")
+        .eq("goal_id", goal.id);
+      const progress = computeGoalProgress(
+        goal,
+        (contributionsData ?? []) as Contribution[],
+      );
+      return { ...goal, progress };
+    }),
+  );
+
+  return <ObjectifsScreen initialGoals={goalsWithProgress} />;
 }

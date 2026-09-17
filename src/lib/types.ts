@@ -98,3 +98,36 @@ export const WEEKDAY_LABELS: Record<number, string> = {
 };
 
 export const MAX_ACTIVE_GOALS = 2;
+
+export type ContributionKind = "verse" | "saute";
+
+export type SkipReason =
+  | "imprevu"
+  | "revenu_retard"
+  | "objectif_trop_eleve"
+  | "autre";
+
+export const SKIP_REASONS: SkipReason[] = [
+  "imprevu",
+  "revenu_retard",
+  "objectif_trop_eleve",
+  "autre",
+];
+
+export const SKIP_REASON_LABELS: Record<SkipReason, string> = {
+  imprevu: "Imprévu",
+  revenu_retard: "Revenu en retard",
+  objectif_trop_eleve: "Objectif trop élevé",
+  autre: "Autre",
+};
+
+export interface Contribution {
+  id: string;
+  goal_id: string;
+  user_id: string;
+  period_start: string;
+  kind: ContributionKind;
+  amount_xof: number;
+  skip_reason: SkipReason | null;
+  declared_at: string;
+}
